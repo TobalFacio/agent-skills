@@ -1,0 +1,158 @@
+# .agents/project.yml — configuración del proyecto para las skills compartidas
+#
+# Copia este archivo a  <tu-repo>/.agents/project.yml  y ajústalo.
+# Las skills `to-hu` y `to-tareas` y el script `verify-backlog.mjs` leen SOLO de aquí:
+# si un valor no está declarado, no se inventa — la skill se detiene y lo pide.
+#
+# Regla de oro: todo lo que sea cierto de ESTE proyecto y falso de otro va en este
+# archivo. Todo lo que sea cierto de cualquier proyecto va en el SKILL.md.
+#
+# Un campo en `null` significa "este proyecto no tiene eso" y desactiva el paso
+# correspondiente. No es un error.
+
+version: 1
+
+# ---------------------------------------------------------------- proyecto
+project:
+  name: Nombre del proyecto
+  repo: owner/nombre-del-repo # se usa para enlaces permanentes y para `gh`
+  default_branch: main
+  private: true
+  language:
+    docs: es # idioma en que se escribe la documentación: es | en
+    ui: es # idioma de la interfaz; sus etiquetas NUNCA se traducen al describir mockups
+
+# ------------------------------------------------------------------ rutas
+# Relativas a la raíz del repo. `null` = el proyecto no tiene ese artefacto.
+paths:
+  backlog: docs/backlog # OBLIGATORIA — carpeta de las historias
+  index: docs/backlog/README.md # OBLIGATORIA — índice del backlog
+  context: docs/context.md # OBLIGATORIA — arquitectura y convenciones
+  template: docs/templates/user-story-template.md # OBLIGATORIA — plantilla de historia
+  glossary: docs/glossary.md # opcional — vocabulario vinculante
+  decision_record: null # opcional — registro de decisiones ya cerradas, que no se reabren
+  erd: null # opcional — modelo de datos autoritativo
+  sql: null # opcional — DDL fuente de verdad, si manda sobre el ERD
+  mockups: null # opcional — carpeta de mockups
+  diagrams: null # opcional — diagramas que citan historias
+  bitacora: null # opcional — bitácora diaria append-only
+  conventions: CLAUDE.md # opcional — convenciones de código del repo
+
+# --------------------------------------------------------------- historia
+story:
+  id_prefix: HU # el prefijo se conserva como identificador opaco y estable
+  slug_language: en # idioma del slug del nombre de archivo: es | en
+  # Frase única que declara al actor. Debe existir EXACTAMENTE una por historia.
+  actor_markers:
+    - "**Como** "
+  # Encabezados obligatorios, en orden y con el texto exacto que usa la plantilla.
+  # Si uno no aplica en una historia se escribe "— No aplica (motivo)", nunca se borra.
+  sections:
+    - "## 1. Objetivo"
+    - "## 2. Descripción"
+    - "## 3. Diseño de interfaz"
+    - "## 4. Conversación"
+    - "### 4.1 Flujo funcional"
+    - "## 5. Criterios de aceptación"
+    - "### 5.1 Funcionales"
+    - "### 5.2 No funcionales"
+    - "### 5.3 Eventos"
+    - "### 5.4 Métricas"
+    - "## 6. Recursos técnicos"
+    - "### 6.1 Endpoints"
+    - "### 6.2 Datos"
+  # La sección de datos es obligatoria y no puede quedar vacía. Ver README §"Por qué 6.2".
+  data_section: "### 6.2 Datos"
+  # Cómo se marca un hueco de esquema, para que sea grepeable en todo el backlog.
+  gap_marker: "⚠️ FALTA"
+  # Cómo se marca un dato inferido por el agente y no dicho por una persona.
+  inferred_marker: "⚠️ inferido"
+  frontmatter:
+    required:
+      - id
+      - title
+      - epic
+      - module
+      - phase
+      - stage
+      - milestone
+      - priority
+      - status
+      - estimate_days
+      - depends_on
+      - blocks
+    optional:
+      - mockup
+    # Claves retiradas de la plantilla. Si aparecen, el verificador falla.
+    forbidden: []
+
+# ------------------------------------------------------------------ enums
+# Conjuntos cerrados. El verificador rechaza cualquier valor fuera de ellos.
+enums:
+  status: [Backlog, Diseñada, Lista para dev, En curso, Hecha]
+  phase: [F0, F1, F2]
+  stage: [MVP, Post-MVP]
+  priority: [P0, P1, P2]
+  module: [Transversal]
+  epic_pattern: "^E\\d{2}$"
+  milestone: [MVP, "—"]
+
+# ------------------------------------------------------------------ índice
+index:
+  # Fila del índice, como expresión regular con grupos nombrados.
+  # Grupos reconocidos: id, file, epic, priority, status, days.
+  row_pattern: '\| \[(?<id>HU-\d+)\]\((?<file>HU-[^)]+)\) \| [^|]+\| (?<epic>E\d+) \| [^|]+\| (?<priority>P\d) \| (?<status>[^|]+)\| (?<days>\d+) \|'
+  mermaid: false # true si el índice lleva grafo mermaid generado desde depends_on
+  totals: false # true si el índice lleva fila **Total** de historias y días
+  total_label: Total # etiqueta de esa fila
+  # Fila de subtotal, si el índice la lleva. Ponla en `null` si no existe.
+  # Forma en bloque:
+  #   subtotal:
+  #     label: MVP
+  #     phases: [F0, F1]
+  subtotal: null
+
+# ---------------------------------------------------------------- tracker
+tracker:
+  kind: github # hoy solo github
+  # Milestones por fase. Se crean si faltan.
+  milestones:
+    F0: F0 Fundaciones
+    F1: F1 Primer módulo
+    F2: F2 Endurecimiento
+  labels:
+    type: [type:task, type:spike, type:refactor, type:chore]
+    layer: [layer:db, layer:backend, layer:frontend, layer:infra, layer:tests]
+    priority: [priority:P0, priority:P1, priority:P2]
+    extra: [blocked, ready-for-dev]
+  # `gh` mínimo: por debajo de 2.94 no existen --parent/--blocked-by y el plan
+  # se publicaría con bloqueos de mentira, escritos en prosa.
+  gh_min_version: "2.94"
+  branch_pattern: "feature/<cosa>" # o fix/<cosa>
+  pull_request: required # required | recommended | none
+
+# ------------------------------------------------------------------ board
+# Espejo externo del backlog. `enabled: false` desactiva todos sus pasos.
+board:
+  enabled: false
+  kind: notion
+  data_source: null # p. ej. collection://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  # Qué manda cuando difieren. El repo casi siempre.
+  source_of_truth: repo
+
+# ------------------------------------------------------------ verificador
+verify:
+  command: node scripts/verify-backlog.mjs
+  checks:
+    references: true # depends_on / blocks apuntan a historias que existen
+    symmetry: true # el par depends_on / blocks es simétrico
+    phase_order: true # nadie depende de una historia de fase posterior
+    index_rows: true # el índice concuerda con el frontmatter
+    index_totals: false # los totales del índice cuadran
+    mermaid: false # el grafo declara todo y sus aristas son depends_on
+    sections: true # están las secciones del estándar
+    single_actor: true # exactamente una frase de actor
+    enums: true # los valores vienen de los conjuntos permitidos
+    frontmatter: true # claves requeridas presentes, prohibidas ausentes
+    data_section: true # 6.2 dice algo y los huecos van marcados
+    diagrams: false # los diagramas citan historias que existen

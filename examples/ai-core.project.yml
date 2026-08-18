@@ -1,0 +1,154 @@
+# examples/ai-core.project.yml
+#
+# Configuración que reproduce el comportamiento ACTUAL de las skills de AI Core.
+# Está aquí como prueba de equivalencia: si algo que hoy hacen las skills de ese
+# proyecto no se puede expresar en este archivo, la generalización está incompleta.
+#
+# NO copies esto a C:\Dev\AICore todavía. AI Core sigue con sus propias skills en
+# .agents/skills/ y este archivo no le hace nada mientras no exista ahí.
+# Cuando quieras migrarlo: copia este archivo a AICore/.agents/project.yml, cambia el
+# junction para que apunte al repo de skills compartidas, corre el verificador y compara
+# la salida con la del script viejo. Si coinciden, borra las skills locales.
+
+version: 1
+
+project:
+  name: AI Core
+  repo: TobalFacio/ai-core
+  default_branch: main
+  private: true
+  language:
+    docs: en
+    ui: es
+
+paths:
+  backlog: docs/backlog
+  index: docs/backlog/README.md
+  context: docs/context.md
+  template: docs/templates/user-story-template.md
+  glossary: docs/glossary.md
+  decision_record: docs/context.md · Annex P
+  erd: docs/ERD - Data schema.md
+  sql: docs/sql
+  mockups: docs/mockups
+  diagrams: docs/diagrams
+  bitacora: null
+  conventions: CLAUDE.md
+
+story:
+  id_prefix: HU
+  slug_language: en
+  actor_markers:
+    - "**As a** "
+    - "**As an** "
+    - "**As the** "
+  sections:
+    - "## 1. Objective"
+    - "## 2. Description"
+    - "## 3. Interface design"
+    - "## 4. Conversation"
+    - "### 4.1 Functional flow"
+    - "## 5. Acceptance criteria"
+    - "### 5.1 Functional"
+    - "### 5.2 Non-functional"
+    - "### 5.3 Events"
+    - "### 5.4 Metrics"
+    - "## 6. Technical resources"
+    - "### 6.1 Endpoints"
+    - "### 6.2 Data"
+  data_section: "### 6.2 Data"
+  gap_marker: "⚠️ MISSING"
+  inferred_marker: "⚠️ inferred"
+  estimate_pattern: "^\\d+$"
+  frontmatter:
+    required:
+      - id
+      - title
+      - epic
+      - module
+      - phase
+      - stage
+      - milestone
+      - priority
+      - status
+      - estimate_days
+      - depends_on
+      - blocks
+      - notion
+    optional:
+      - mockup
+    # Retiradas el 8-ago-2026 (Anexo P · D26): estaban vacías en las 78 historias, así que
+    # afirmaban una revisión que nunca ocurrió. Si vuelve el control documental, vuelve
+    # aquí — y con valor real, o el check es teatro otra vez.
+    forbidden:
+      - prepared_by
+      - reviewed_by
+      - approved_by
+
+enums:
+  status: [Backlog, Designed, Ready for dev, In progress, Done]
+  phase: [F0, F1, F2, F3, F4, F5, F6]
+  stage: ["MVP (F0–F4)", "Post-MVP (F5)", "Fiscal/Hardening (F6)"]
+  priority: [P0, P1, P2]
+  module:
+    - 00 Catalogs
+    - 11 Configuration
+    - 21/31 Operations
+    - Inventory
+    - Identity
+    - Sync
+    - Fiscal
+    - Cross-cutting
+  epic_pattern: "^E\\d{2}$"
+  milestone: [H1, H2, MVP, "—"]
+
+index:
+  row_pattern: '\| \[(?<id>HU-\d+)\]\((?<file>HU-[^)]+)\) \| [^|]+\| (?<epic>E\d+) \| [^|]+\| (?<priority>P\d) \| (?<status>[^|]+)\| (?<days>\d+) \|'
+  mermaid: true
+  totals: true
+  total_label: Total
+  subtotal:
+    label: MVP
+    phases: [F0, F1, F2, F3, F4]
+
+tracker:
+  kind: github
+  milestones:
+    F0: F0 Foundations
+    F1: F1 Catalogs
+    F2: F2 Configuration engine
+    F3: F3 Movement runtime
+    F4: F4 Inventory
+    F5: F5 Post-MVP
+    F6: F6 Fiscal and hardening
+  labels:
+    type: [type:task, type:spike, type:refactor, type:chore]
+    layer: [layer:db, layer:backend, layer:frontend, layer:infra, layer:tests]
+    priority: [priority:P0, priority:P1, priority:P2]
+    extra: [blocked, ready-for-dev]
+  gh_min_version: "2.94"
+  branch_pattern: feature/<thing>
+  pull_request: recommended
+
+board:
+  enabled: true
+  kind: notion
+  data_source: collection://06eb3b1a-74f6-488d-95b9-4da7ffebe2e2
+  source_of_truth: repo
+
+verify:
+  command: node scripts/verify-backlog.mjs
+  checks:
+    references: true
+    symmetry: true
+    phase_order: true
+    index_rows: true
+    index_totals: true
+    mermaid: true
+    sections: true
+    single_actor: true
+    enums: true
+    frontmatter: true
+    unknown_keys: false # el script original no lo revisaba; se deja igual
+    data_section: true
+    diagrams: true

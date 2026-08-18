@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    name: Los .ps1 son legibles por Windows PowerShell 5.1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: BOM y bytes peligrosos
+        shell: bash
+        run: |
+          # Windows PowerShell 5.1 lee un .ps1 sin BOM como ANSI (cp1252). Ahí los bytes
+          # 0x91-0x94 —que aparecen dentro de «—», «─», «→» y de los emoji— se convierten en
+          # comillas tipográficas, y PowerShell LAS ACEPTA como delimitadores de cadena.
+          # Resultado: el script se parte en un punto que no tiene nada que ver con el error.
+          # Le pasó a Link-AgentSkills.ps1 y costó una sesión encontrarlo.
+          fallo=0
+          while IFS= read -r -d '' f; do
+            if ! head -c 3 "$f" | grep -q $'\xef\xbb\xbf'; then
+              echo "::error file=$f::Falta el BOM UTF-8. Windows PowerShell 5.1 lo leerá como ANSI."
+              fallo=1
+            fi
+            if LC_ALL=C grep -qP '[\x91-\x94]' "$f"; then
+              echo "::error file=$f::Contiene bytes 0x91-0x94 (— ─ → o emoji). Usa ASCII: - -> [!]"
+              fallo=1
+            fi
+          done < <(find . -name '*.ps1' -print0)
+          [ "$fallo" -eq 0 ] && echo "Los .ps1 sobreviven a una lectura ANSI."
+          exit $fallo
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -ErrorAction Stop
+          $r = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error
+          if ($r) { $r | Format-Table -AutoSize | Out-String | Write-Host; exit 1 }
+          Write-Host "PSScriptAnalyzer: sin errores."
+
+  verificador:
+    name: El verificador corre y se defiende
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No hay backlog que verificar aquí: lo que se comprueba es que el script no
+      # esté roto y que falle con un mensaje útil cuando no encuentra configuración.
+      - name: Sintaxis
+        run: node --check scripts/verify-backlog.mjs
+
+      - name: Sin project.yml, falla con mensaje claro
+        shell: bash
+        run: |
+          salida=$(cd /tmp && node "$GITHUB_WORKSPACE/scripts/verify-backlog.mjs" 2>&1 || true)
+          echo "$salida"
+          echo "$salida" | grep -qi "project.yml" \
+            || { echo "::error::El verificador no explica que falta .agents/project.yml"; exit 1; }
