@@ -41,6 +41,10 @@ paths:
 # --------------------------------------------------------------- historia
 story:
   id_prefix: HU # el prefijo se conserva como identificador opaco y estable
+  # Con qué se valida el estimado del frontmatter. El script lo lee; faltaba aquí.
+  # El relleno con ceros del id (HU-01 vs HU-1) NO se configura: se deduce de los nombres
+  # de archivo del backlog.
+  estimate_pattern: "^\\d+$"
   slug_language: en # idioma del slug del nombre de archivo: es | en
   # Frase única que declara al actor. Debe existir EXACTAMENTE una por historia.
   actor_markers:
@@ -102,8 +106,10 @@ index:
   # Fila del índice, como expresión regular con grupos nombrados.
   # Grupos reconocidos: id, file, epic, priority, status, days.
   row_pattern: '\| \[(?<id>HU-\d+)\]\((?<file>HU-[^)]+)\) \| [^|]+\| (?<epic>E\d+) \| [^|]+\| (?<priority>P\d) \| (?<status>[^|]+)\| (?<days>\d+) \|'
-  mermaid: false # true si el índice lleva grafo mermaid generado desde depends_on
-  totals: false # true si el índice lleva fila **Total** de historias y días
+  # OJO: estas dos NO las lee el verificador. Describen la forma del índice para quien lo
+  # genera; los interruptores del check son `verify.checks.mermaid` y `verify.checks.index_totals`.
+  mermaid: false # el índice lleva grafo mermaid generado desde depends_on
+  totals: false # el índice lleva fila **Total** de historias y días
   total_label: Total # etiqueta de esa fila
   # Fila de subtotal, si el índice la lleva. Ponla en `null` si no existe.
   # Forma en bloque:
@@ -156,3 +162,6 @@ verify:
     frontmatter: true # claves requeridas presentes, prohibidas ausentes
     data_section: true # 6.2 dice algo y los huecos van marcados
     diagrams: false # los diagramas citan historias que existen
+    # Clave del frontmatter que no está ni en `required` ni en `optional`. Atrapa el renombre
+    # y la errata. El script la lee desde siempre; faltaba en esta plantilla.
+    unknown_keys: false

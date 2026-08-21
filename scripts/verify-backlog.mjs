@@ -171,6 +171,10 @@ const INDEX_REL = need("paths.index");
 const INDEX = join(ROOT, ...INDEX_REL.split("/"));
 
 const PREFIX = opt("story.id_prefix", "HU");
+// Ancho del relleno con ceros del número de historia. NO es una clave de configuración: se
+// deduce de los propios nombres de archivo del backlog, más abajo, en cuanto se leen. El 2 es
+// sólo la red por si el directorio viniera vacío.
+let PAD = 2;
 const REQUIRED_KEYS = opt("story.frontmatter.required", []);
 const OPTIONAL_KEYS = opt("story.frontmatter.optional", []);
 const FORBIDDEN_KEYS = opt("story.frontmatter.forbidden", []);
@@ -209,8 +213,15 @@ const asList = (v = "[]") =>
     .filter(Boolean);
 const countOccurrences = (haystack, needle) => haystack.split(needle).length - 1;
 const numOf = (id) => parseInt(String(id).replace(`${PREFIX}-`, ""), 10);
-const canonical = (id) => `${PREFIX}-${numOf(id)}`;
-const nodeOf = (id) => `${PREFIX}${numOf(id)}`;
+// `canonical` normaliza para COMPARAR: HU-1 y HU-01 tienen que ser la misma historia. Antes
+// normalizaba quitando el cero, y esa forma —"HU-1"— se convertía en la llave del Map, o sea en
+// lo que salía impreso en TODOS los mensajes de error: un identificador que no existe en ningún
+// archivo del repo. Normaliza igual de bien hacia la forma rellenada, que además es la que la
+// gente escribe. Misma semántica de comparación, mensajes ciertos.
+const padded = (id) => String(numOf(id)).padStart(PAD, "0");
+const canonical = (id) => `${PREFIX}-${padded(id)}`;
+// El id de nodo de mermaid no lleva el guion — un '-' inicial rompe la sintaxis del grafo.
+const nodeOf = (id) => `${PREFIX}${padded(id)}`;
 const phaseIndex = (p) => PHASES.indexOf(p);
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -224,6 +235,11 @@ try {
   console.error(`Cannot read ${BACKLOG_REL} — is 'paths.backlog' right?`);
   process.exit(1);
 }
+// El ancho del relleno lo manda el backlog, no una suposición: HU-01-….md → 2, HU-1-….md → 1.
+// Se fija ANTES de la primera llamada a canonical(), que es la línea de abajo.
+if (files.length)
+  PAD = Math.max(...files.map(f => fileRe.exec(f)[1].length));
+
 for (const file of files) {
   const text = readFileSync(join(BACKLOG, file), "utf8");
   const fm = frontmatter(text);
@@ -234,8 +250,8 @@ for (const file of files) {
     continue;
   }
   const m = fileRe.exec(file);
-  if (`${PREFIX}-${parseInt(m[1], 10)}` !== id)
-    fail("naming", `${file}: filename says ${PREFIX}-${parseInt(m[1], 10)} but id is ${fm.id}`);
+  if (canonical(`${PREFIX}-${m[1]}`) !== id)
+    fail("naming", `${file}: filename says ${canonical(`${PREFIX}-${m[1]}`)} but id is ${fm.id}`);
   stories.set(id, { file, fm, text });
 }
 if (stories.size === 0) {
@@ -432,7 +448,10 @@ if (readme && CHECK("index_totals", false)) {
 // ------------------------------------------------------------------ mermaid
 if (readme && CHECK("mermaid", false)) {
   if (!readme.includes("```mermaid")) {
-    fail("graph", "index.mermaid is on but the index has no mermaid block");
+    // El interruptor es `verify.checks.mermaid`. `index.mermaid` es una clave que se declara en
+    // las tres configuraciones y que este script NO lee nunca: nombrarla aquí mandaba a quien
+    // leyera el error a apagar la clave equivocada.
+    fail("graph", "verify.checks.mermaid is on but the index has no mermaid block");
   } else {
     const graph = readme.split("```mermaid")[1].split("```")[0];
     const nodeRe = new RegExp(`^ {4}(${escapeRe(PREFIX)}\\d+)\\[`, "gm");

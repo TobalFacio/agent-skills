@@ -1,17 +1,31 @@
 # examples/plataforma-sig.project.yml
 #
-# Configuración de arranque para el repo `plataforma-sig`. Cópiala a
-# `plataforma-sig/.agents/project.yml`.
+# Configuración REAL del repo `plataforma-sig`, reflejada aquí como ejemplo de un proyecto en
+# marcha. Cópiala a `<tu-repo>/.agents/project.yml` y ajústala.
 #
-# Diferencias deliberadas contra AI Core:
+# Sincronizada el 21 de agosto de 2026 contra el archivo vivo. Hasta ese día estaba congelada en
+# el 18 de agosto y mentía en seis puntos: `erd: null`, el registro de decisiones apuntando a
+# `context.md`, `data_source: null`, «mockup congelado v1», «las cuatro semanas del Plan V081826»
+# y «PR obligatorio — nadie se autoaprueba», que ADR-0011 derogó. Conservaba además siete marcas
+# 🔧 que el archivo real ya no tiene.
+#
+# ⚠️ ESTE REPO ES PÚBLICO. Los identificadores del cliente van en marcador, no reales.
+#
+# Un campo en `null` significa «este proyecto no tiene eso» y desactiva el paso, no lo rompe.
+#
+# Decisiones deliberadas:
 #   · documentación en español — el equipo y el cliente leen en español
-#   · sin glosario ni ERD todavía → en `null`, y las skills se saltan esos pasos
-#   · sin grafo mermaid ni totales en el índice al principio → menos ceremonia
-#     mientras el backlog es chico; se encienden cuando estorbe no tenerlos
-#   · PR obligatorio — son 2 personas y nadie se autoaprueba
+#   · sin glosario, ERD, SQL ni diagramas todavía → en `null`; se encienden cuando estorbe no tenerlos
+#   · sin grafo mermaid ni totales en el índice mientras el backlog sea chico
+#   · PR obligatorio; la aprobación cruzada es recomendada, no exigida (ADR-0011)
 #   · bitácora activa desde el día 1
 #
-# Lo marcado 🔧 es propuesta mía y hay que confirmarlo antes de la primera historia.
+# Confirmado el 18 de agosto de 2026: fases F0–F4, los seis módulos del mockup, las cinco
+# épicas por capacidad, los milestones del plan y la base de Notion.
+# No queda ningún valor por confirmar.
+#
+# El plan vigente es docs/especificacion/plan-plataforma-sig-v082026.md, en este repo
+# (ADR-0010). La página de Notion quedó como histórico y no se modifica.
 
 version: 1
 
@@ -29,9 +43,11 @@ paths:
   index: docs/backlog/README.md
   context: docs/context.md
   template: docs/templates/plantilla-historia.md
-  glossary: null # 🔧 aún no existe; crear cuando aparezca el primer término discutido
-  decision_record: docs/context.md · Decisiones cerradas
-  erd: null # 🔧 se llena cuando el agente db-schema publique el modelo
+  glossary: null # aún no existe; crear cuando un término del dominio se discuta dos veces
+  decision_record: docs/decisiones # ADR, uno por archivo. Las cuatro cerradas antes del repo están en docs/context.md §6.
+  # El modelo lógico V082026 (ADR-0009). Manda sobre el diccionario y sobre el .drawio.xml
+  # que lo acompaña: si se contradicen, gana este archivo.
+  erd: docs/especificacion/modelo-de-datos-v082026.md
   sql: null
   mockups: docs/mockups # ahí vive SIG_Arquitectura_Documentacion_Mockup.html
   diagrams: null
@@ -85,11 +101,13 @@ story:
 
 enums:
   status: [Backlog, Diseñada, Lista para dev, En curso, Hecha]
-  # 🔧 Las cuatro semanas de desarrollo del Plan V081826, más la Semana 0.
+  # Las cuatro fases de desarrollo del plan vigente, más la Semana 0.
+  # F0 Prerrequisitos · F1 Arquitectura navegable · F2 Expediente documental ·
+  # F3 Agentes · F4 Exportación y piloto
   phase: [F0, F1, F2, F3, F4]
   stage: ["MVP (F0–F4)", "Post-MVP"]
   priority: [P0, P1, P2]
-  # 🔧 Módulos derivados del mockup congelado v1.
+  # Dónde vive el código. Derivados del mockup congelado v7 y del §2 del plan vigente.
   module:
     - Arquitectura
     - Expediente
@@ -97,6 +115,14 @@ enums:
     - Exportación
     - Identidad
     - Transversal
+  # Las épicas agrupan por CAPACIDAD DE NEGOCIO — lo que gana el usuario—, no por dónde
+  # vive el código: para eso está `module`. Sólo el código `E0N` va en el frontmatter.
+  #   E01 Navegar la arquitectura   · los 333 subprocesos consultables y cruzables
+  #   E02 Documentar un subproceso  · el expediente y sus cinco etapas
+  #   E03 Asistir con agentes       · los seis agentes y su registro
+  #   E04 Publicar el POE           · exportación al .docx oficial y publicación
+  #   E05 Gobernar accesos          · login local (ADR-0004), roles y permisos
+  # No se extiende sin decidirlo: un conjunto que crece en silencio deja de ser una verificación.
   epic_pattern: "^E\\d{2}$"
   milestone: [H1, H2, H3, H4, "—"]
 
@@ -109,7 +135,7 @@ index:
 
 tracker:
   kind: github
-  # 🔧 Alineadas al calendario del plan: Semana 0 + cuatro semanas de desarrollo.
+  # Alineados al calendario del plan vigente (ADR-0003): F0 + cuatro fases de desarrollo.
   milestones:
     F0: F0 Prerrequisitos
     F1: F1 Arquitectura navegable
@@ -123,12 +149,19 @@ tracker:
     extra: [blocked, ready-for-dev]
   gh_min_version: "2.94"
   branch_pattern: feature/HU-NN-slug
+  # El PR sigue siendo obligatorio (ADR-0011). Lo que dejó de serlo es que lo
+  # apruebe la otra persona: son 2 y ambas administradoras del repo, así que
+  # exigir revisión cruzada sería una regla con llave propia. El control
+  # efectivo son el dictamen de hu-auditor y el CI en verde.
   pull_request: required
 
 board:
   enabled: true
   kind: notion
-  data_source: null # 🔧 pegar el collection:// de la base de SIG cuando exista
+  # El espejo del backlog vive en una base de Notion de un workspace personal, distinto del
+  # workspace donde vive el plan. Es una asimetría deliberada y conviene tenerla presente.
+  # El identificador real NO se publica aquí: este repo es público.
+  data_source: collection://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   source_of_truth: repo
 
 verify:
