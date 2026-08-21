@@ -185,9 +185,30 @@ Sale 0 si todo pasa, 1 si no. Comprueba, según lo que encienda `verify.checks`:
 | `index_totals` | los totales que no cuadran |
 | `mermaid` | nodos sin declarar, sin clase, o **aristas que no son `depends_on`** |
 | `diagrams` | un diagrama que cita una historia muerta o le anota otra fase |
+| `unknown_keys` | una clave del frontmatter que no está en `required` ni en `optional` — atrapa el renombre y la errata. **Estaba activo en producción y sin documentar hasta el 21 ago 2026** |
 
-Los 18 casos de error están probados: cada uno rompe una cosa en un repo de prueba y el
-verificador la detecta. Un caso que saliera verde sería un check que no existe.
+> **Dos claves que el script lee y que conviene no perder de vista:**
+> `story.estimate_pattern` (por defecto `^\d+$`) valida el estimado del frontmatter, y
+> `story.id_prefix` fija el prefijo. **Ni `index.mermaid` ni `index.totals` se leen nunca**: se
+> declaran en las tres configuraciones por costumbre, pero los interruptores reales son
+> `verify.checks.mermaid` y `verify.checks.index_totals`. Quedan en las plantillas marcadas como
+> lo que son.
+
+> ⚠️ **Este párrafo decía: *«Los 18 casos de error están probados: cada uno rompe una cosa en un
+> repo de prueba y el verificador la detecta. Un caso que saliera verde sería un check que no
+> existe.»*** Era falso, y se retira el 21 de agosto de 2026.
+>
+> **No hay ni una prueba.** No existe `tests/`, ni fixtures, ni un solo caso. El `ci.yml` de este
+> repo corre `node --check` —sintaxis— y un `grep`; nada ejecuta el verificador contra un repo
+> roto. La aritmética tampoco cerraba: la tabla de arriba lista **13** familias, el código emite
+> **12** nombres distintos en sus `fail(...)` y expone **13** interruptores `verify.checks.*`. De
+> dónde salía el 18 no consta.
+>
+> Importa más de lo que parece: desde ADR-0011 del proyecto *Plataforma SIG*, este script es el
+> **único control mecanizado** que le queda a ese repo. 500 líneas de juez sin red.
+>
+> **Deuda abierta:** escribir las pruebas —un repo de prueba por familia de fallo, cada uno
+> esperando `exit 1`— y encenderlas en el CI. Hasta entonces, este README no afirma que existan.
 
 **Por qué la sección de datos es obligatoria aunque la respuesta sea "nada".** La
 auditoría que originó este script encontró 60 de 70 historias sin esa sección. Ese hueco

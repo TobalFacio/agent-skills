@@ -141,7 +141,7 @@ Body rules:
 |---|---|
 | The story's content | `paths.backlog` |
 | Architecture decisions already closed | `paths.context` |
-| The plan and the calendar | the board (`board.*`), and its export |
+| The plan and the calendar | wherever `board.source_of_truth` points — the repo, or the board (`board.*`) |
 | The detail of each commit | git |
 
 The log **cites** those places; it does not duplicate them.
