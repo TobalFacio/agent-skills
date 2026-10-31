@@ -1,7 +1,6 @@
 ---
 name: bitacora
 description: Append one entry to the project's development log for the day — an auditor verdict, a story closing, an architecture decision or a blocker. Runs right after the auditor, always, pass or fail. Append-only, and it never blocks the cycle. Every project-specific value comes from .agents/project.yml.
-disable-model-invocation: true
 ---
 
 # Bitácora — one append, and nothing else
